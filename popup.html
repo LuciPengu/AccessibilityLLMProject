@@ -22,6 +22,10 @@
             transition-duration: 0.4s;
             border-radius: 4px;
         }
+        button.on {
+            background-color: #f44336;
+            color: white;
+        }
         button:hover {
             background-color: #f44336;
             color: white;
@@ -34,6 +38,12 @@
     <button id="modifyHtmlBtn">Semantic Tags</button>
     <button id="loadImagesBtn">Image Captions</button>
 
+    <h4>Image Mode:</h4>
+    <select id="imageMode">
+      <option value="figcapture">Figcapture</option>
+      <option value="colorblind">Color Blind</option>
+    </select>
+    
     <script src="popup.js"></script>
 </body>
 </html>
