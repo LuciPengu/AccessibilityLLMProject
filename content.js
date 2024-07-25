@@ -49,45 +49,10 @@ function toggleTemporaryHighlighting(duration) {
     
 }
 
-async function ImageToColorBlind(imgElement) {
-  try {
-      alert("TESTING FUNCTION")
-      // Get the current image URL
-      const imageUrl = imgElement.src;
-
-      // Fetch the color-blind-friendly image from the server
-      const response = await fetch(`${url}analyze-image`, {
-          method: 'POST',
-          body: JSON.stringify({ image_url: imageUrl }),
-          headers: {
-              'Content-Type': 'application/json'
-          }
-      });
-
-      if (!response.ok) {
-          throw new Error(`Failed to fetch color-blind image: ${response.statusText}`);
-      }
-
-      // Parse the response JSON to get the new image URL
-      const data = await response.json();
-      const newImageUrl = data.result; // Assuming the server returns the new image URL
-
-      // Create a new image element for the color-blind-friendly image
-      const newImgElement = new Image();
-      newImgElement.src = newImageUrl;
-
-      // Replace the original image with the color-blind-friendly image
-      imgElement.parentNode.replaceChild(newImgElement, imgElement);
-  } catch (error) {
-      console.error('Error converting image to color blind:', error);
-  }
-}
-
-function ImageToText(imgElement) {
+function ImageToText(imgElement, endPoint) {
     try {
-        // Ensure cross-origin images are not tainted
-        imgElement.crossOrigin = "Anonymous";
-
+        var msg = new SpeechSynthesisUtterance("Loading Image Data");
+        window.speechSynthesis.speak(msg);
         // Add <figure> if not already wrapped
         if (imgElement.parentNode.tagName.toLowerCase() !== 'figure') {
             var figureElement = document.createElement('figure');
@@ -99,21 +64,20 @@ function ImageToText(imgElement) {
         if (!imgElement.nextElementSibling || imgElement.nextElementSibling.tagName.toLowerCase() !== 'figcaption') {
             var figCaption = document.createElement('figcaption');
             imgElement.parentNode.appendChild(figCaption);
-
         }
 
         // Wait for the image to load
             return async function() {
                 try {
                     // Send the image URL to the server
-                    var imageUrl = imgElement.src;
+                    var imageUrl = imgElement.dataset.originalSrc;
                     console.log(imageUrl);
                     // Create a form data object
                     var formData = new FormData();
                     formData.append('image_url', imageUrl);
                     console.log(formData);
                     // Send the image URL to the server using fetch
-                    const response = await fetch(`${url}analyze-image`, { 
+                    const response = await fetch(`${url}${endPoint}`, { 
                         method: 'POST',
                         body: formData
                     });
@@ -123,9 +87,17 @@ function ImageToText(imgElement) {
                     const data = await response.json();
                     // Update the figcaption with the data from the server
                     console.log(data);
-                    imgElement.nextElementSibling.textContent = data.result;
-                    var msg = new SpeechSynthesisUtterance(imgElement.nextElementSibling.textContent);
-                    window.speechSynthesis.speak(msg);
+                    
+                    if (data.result.split(/\s+/).length <= 30){
+                        imgElement.nextElementSibling.textContent = data.result;
+                        var msg = new SpeechSynthesisUtterance(imgElement.nextElementSibling.textContent);
+                        window.speechSynthesis.speak(msg);
+                    }
+                    else {
+                        navigator.clipboard.writeText(data.result);
+                        var msg = new SpeechSynthesisUtterance("The Result Was Copied To Your Clipboard");
+                        window.speechSynthesis.speak(msg);
+                    }
                 } catch (error) {
                     console.error('Error:', error);
                     imgElement.nextElementSibling.textContent = 'Hello';
@@ -142,6 +114,8 @@ function ImageToText(imgElement) {
 
 async function fetchAndModifyHTML() {
     try {
+        var msg = new SpeechSynthesisUtterance("Updating Semantic Tags");
+        window.speechSynthesis.speak(msg);
         // Send the current HTML to your API and receive the modified HTML back
         const currentHtml = document.body.innerHTML;
         const response = await fetch(`${url}process-html`, {  
@@ -156,11 +130,17 @@ async function fetchAndModifyHTML() {
         });
         if (!response.ok) {
             const errorData = await response.json();
+            var msg = new SpeechSynthesisUtterance("Error, The Site Is Likely Too Large To Update The Tags");
+            window.speechSynthesis.speak(msg);
             throw new Error(errorData.error || 'Network response was not ok');
         }
         const data = await response.json();  // Assuming the API returns a JSON object
-        console.log(data);
         const modifiedHtml = data.modified_html;
+        const tagCount = data.tag_count;
+
+        var msg = new SpeechSynthesisUtterance("Updated "+tagCount+ " Semantic Tags");
+        window.speechSynthesis.speak(msg);
+
         // Set the inner HTML of the document to the modified HTML
         document.body.innerHTML = modifiedHtml;
         toggleTemporaryHighlighting(5000)
@@ -173,7 +153,6 @@ async function fetchAndModifyHTML() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     try {
         if (request.message === 'modifyHtml') {
-            alert("modify");
             fetchAndModifyHTML();
         }
 
@@ -206,28 +185,15 @@ function modifyImageOnHover(imgElement) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
-  // Set canvas dimensions to match the image
+  // Set canvas dimensions to match the original image
   canvas.width = img.width;
   canvas.height = img.height;
-
-  // Draw the image onto the canvas
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-  // Get the image data
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-
-  for (let i = 0; i < data.length; i += 4) {
-      // Modify the red channel value to 255
-      let grey = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      data[i] = 255;     // Red channel
-      data[i + 1] = grey; // Green channel
-      data[i + 2] = grey; // Blue channel
-  }
-
-  ctx.putImageData(imageData, 0, 0);
-
-  // Replace the image source with the modified canvas data
+  
+  // Fill the canvas with red
+  ctx.fillStyle = 'red';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Replace the image source with the red canvas data
   img.src = canvas.toDataURL();
 
 }
@@ -257,9 +223,9 @@ document.addEventListener('click', function (event) {
             event.stopPropagation();
             
             chrome.storage.sync.get('imageMode', ({ imageMode }) => {
-                if (imageMode == "figcapture") ImageToText(event.target);
+                if (imageMode == "describe") ImageToText(event.target, "analyze-image");
 
-                if(imageMode == "colorblind") ImageToColorBlind(event.target);
+                if(imageMode == "ocr") ImageToText(event.target, "ocr");
             });
 
         }

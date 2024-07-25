@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function() {
       imageMode.value = data.imageMode;
     }
     else{
-      imageMode.value = "figcapture";
+      imageMode.value = "describe";
     }
   });
 
