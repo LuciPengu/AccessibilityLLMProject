@@ -2,12 +2,13 @@
 
 A Chrome extension that uses an LLM to make web pages easier to use with a screen reader.
 
-It does two things:
+It does two things.
 
-- **Describes images.** Turn on image mode and click any image on a page. The extension sends it to a backend, reads the description aloud, and copies it to your clipboard. A second mode reads the text inside an image instead of describing it.
-- **Fixes page structure.** One button sends the page's HTML to the backend, which uses Gemini to rewrite it with proper semantic tags. The extension swaps the new HTML in and says how many tags it updated.
+The first is describing images. Turn on image mode and click any image on a page. The extension sends it to a backend, reads the description aloud, and copies it to your clipboard. There is a second mode that reads the text inside an image instead of describing it.
 
-Everything it does is also spoken through the browser's speech synthesis, so you get feedback without looking at the screen.
+The second is fixing page structure. One button sends the page's HTML to the backend, which uses Gemini to rewrite it with proper semantic tags. The extension swaps the new HTML in and tells you how many tags it updated.
+
+Each step is also spoken through the browser's speech synthesis, so you get feedback without looking at the screen.
 
 ## How it works
 
